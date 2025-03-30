@@ -1,10 +1,44 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, FileText, Users, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { leaseService } from "@/services/leaseService";
+import LoadingFallback from "@/components/common/LoadingFallback";
 
 const LeaseManagement = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLeaseData = async () => {
+      try {
+        const { data, error } = await leaseService.getLeasePortfolio();
+        if (error) {
+          setError(error);
+        }
+        // Data would be used to populate the component
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaseData();
+  }, []);
+
+  if (loading) {
+    return <LoadingFallback message="Memuat data sewa..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+        <h3 className="font-medium">Error</h3>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full space-y-4">
       <Card>

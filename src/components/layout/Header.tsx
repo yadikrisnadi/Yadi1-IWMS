@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../../lib/utils";
+import { useTranslation } from "react-i18next";
+import LanguageToggle from "./LanguageToggle";
 
 interface HeaderProps {
   userName?: string;
@@ -25,19 +27,22 @@ const Header = ({
   userAvatar = "",
   notificationCount = 3,
 }: HeaderProps) => {
+  const { t } = useTranslation();
   return (
     <header className="bg-white border-b border-gray-200 h-[72px] w-full flex items-center justify-between px-6 py-2 shadow-sm">
       <div className="flex items-center gap-4 w-1/3">
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search..."
+            placeholder={t("search")}
             className="pl-10 h-10 w-full bg-gray-50 border-gray-200"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-4">
+        <LanguageToggle />
+
         <Button variant="outline" size="icon" className="relative">
           <HelpCircle className="h-5 w-5 text-gray-600" />
         </Button>
@@ -71,23 +76,25 @@ const Header = ({
               </Avatar>
               <div className="flex flex-col items-start text-sm">
                 <span className="font-medium">{userName}</span>
-                <span className="text-xs text-gray-500">Administrator</span>
+                <span className="text-xs text-gray-500">
+                  {t("administrator")}
+                </span>
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("myAccount")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t("settings")}</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <span>Profile</span>
+              <span>{t("profile")}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <span>Log out</span>
+              <span>{t("logout")}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

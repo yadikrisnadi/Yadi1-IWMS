@@ -43,13 +43,64 @@ interface FacilitiesOptimizationProps {
 }
 
 const FacilitiesOptimization = ({
-  floors,
-  spaces,
-  spaceTypes,
-  selectedFloor,
-  onFloorChange,
-  loading,
+  floors = [],
+  spaces = [],
+  spaceTypes = [],
+  selectedFloor = "",
+  onFloorChange = () => {},
+  loading = false,
 }: FacilitiesOptimizationProps) => {
+  // Default mock data jika data asli kosong
+  const defaultFloors = [
+    { id: "1", name: "Lantai 1", buildingId: "1" },
+    { id: "2", name: "Lantai 2", buildingId: "1" },
+    { id: "3", name: "Lantai 3", buildingId: "1" },
+  ];
+
+  const defaultSpaceTypes = [
+    { id: "1", name: "Kantor", color: "#4CAF50" },
+    { id: "2", name: "Ruang Rapat", color: "#2196F3" },
+    { id: "3", name: "Ruang Istirahat", color: "#FFC107" },
+  ];
+
+  const defaultSpaces = [
+    {
+      id: "1",
+      name: "Ruang Kerja Utama",
+      floorId: "1",
+      spaceTypeId: "1",
+      area: 120,
+      capacity: 30,
+      currentOccupancy: 25,
+    },
+    {
+      id: "2",
+      name: "Ruang Rapat Besar",
+      floorId: "1",
+      spaceTypeId: "2",
+      area: 60,
+      capacity: 20,
+      currentOccupancy: 0,
+    },
+    {
+      id: "3",
+      name: "Ruang Istirahat",
+      floorId: "1",
+      spaceTypeId: "3",
+      area: 40,
+      capacity: 15,
+      currentOccupancy: 5,
+    },
+  ];
+
+  // Gunakan data default jika data asli kosong
+  const actualFloors = floors.length > 0 ? floors : defaultFloors;
+  const actualSpaceTypes =
+    spaceTypes.length > 0 ? spaceTypes : defaultSpaceTypes;
+  const actualSpaces = spaces.length > 0 ? spaces : defaultSpaces;
+  const actualSelectedFloor =
+    selectedFloor || (actualFloors.length > 0 ? actualFloors[0].id : "");
+  const actualOnFloorChange = onFloorChange || (() => {});
   const [activeTab, setActiveTab] = useState("energy");
   const [timeRange, setTimeRange] = useState("day");
 
@@ -231,12 +282,15 @@ const FacilitiesOptimization = ({
               </div>
               <div className="w-1/3">
                 <Label htmlFor="floor-select-energy">Floor</Label>
-                <Select value={selectedFloor} onValueChange={onFloorChange}>
+                <Select
+                  value={actualSelectedFloor}
+                  onValueChange={actualOnFloorChange}
+                >
                   <SelectTrigger id="floor-select-energy">
                     <SelectValue placeholder="Select Floor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {floors.map((floor) => (
+                    {actualFloors.map((floor) => (
                       <SelectItem key={floor.id} value={floor.id}>
                         {floor.name}
                       </SelectItem>

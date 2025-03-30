@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -46,11 +46,15 @@ import {
   Briefcase,
   CheckSquare,
 } from "lucide-react";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
+import LoadingFallback from "@/components/common/LoadingFallback";
 
-// Import sub-modules
-import ProjectPlanningBudgeting from "./ProjectPlanningBudgeting";
-import ProjectExecution from "./ProjectExecution";
-import ProjectCloseout from "./ProjectCloseout";
+// Lazy load sub-modules
+const ProjectPlanningBudgeting = lazy(
+  () => import("./ProjectPlanningBudgeting"),
+);
+const ProjectExecution = lazy(() => import("./ProjectExecution"));
+const ProjectCloseout = lazy(() => import("./ProjectCloseout"));
 
 interface CapitalProject {
   id: string;
@@ -520,7 +524,7 @@ const CapitalProjectManagement = () => {
   // Add the render function for the Capital Project Management component
   const renderCapitalProjectManagement = () => {
     return (
-      <div className="space-y-6 p-4 bg-background rounded-lg">
+      <div className="space-y-6 p-4 bg-background rounded-lg w-full">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Capital Project Management</h2>
           <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -699,20 +703,52 @@ const CapitalProjectManagement = () => {
             </Card>
           </TabsContent>
           <TabsContent value="planning" className="pt-4">
-            <ProjectPlanningBudgeting />
+            <ErrorBoundary moduleName="Capital Projects - Planning & Budgeting">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat perencanaan & anggaran proyek..." />
+                }
+              >
+                <ProjectPlanningBudgeting />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
           <TabsContent value="execution" className="pt-4">
-            <ProjectExecution />
+            <ErrorBoundary moduleName="Capital Projects - Execution">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat eksekusi proyek..." />
+                }
+              >
+                <ProjectExecution />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
           <TabsContent value="closeout" className="pt-4">
-            <ProjectCloseout />
+            <ErrorBoundary moduleName="Capital Projects - Closeout">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat penutupan proyek..." />
+                }
+              >
+                <ProjectCloseout />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>
     );
   };
 
-  return renderCapitalProjectManagement();
+  return (
+    <ErrorBoundary moduleName="Capital Project Management">
+      {isLoading ? (
+        <LoadingFallback message="Memuat data proyek..." />
+      ) : (
+        renderCapitalProjectManagement()
+      )}
+    </ErrorBoundary>
+  );
 };
 
 export default CapitalProjectManagement;

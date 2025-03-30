@@ -68,10 +68,12 @@ const PropertyPortfolio: React.FC<PropertyPortfolioProps> = () => {
   useEffect(() => {
     const fetchPortfolio = async () => {
       try {
-        const data = await realEstateService.getPropertyPortfolio();
-        setPortfolio(data);
-      } catch (error) {
-        console.error("Error fetching property portfolio:", error);
+        const { data, error } = await realEstateService.getPropertyPortfolio();
+        if (error) {
+          console.error("Error fetching property portfolio:", error);
+        } else if (data) {
+          setPortfolio(data);
+        }
       } finally {
         setLoading(false);
       }

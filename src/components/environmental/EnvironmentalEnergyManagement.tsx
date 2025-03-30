@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -42,119 +42,142 @@ import {
   Flame,
   Leaf,
   Lightbulb,
+  Recycle,
   Thermometer,
+  Trash2,
   Upload,
   Wind,
 } from "lucide-react";
+import { enhancedEnvironmentalService } from "./enhancedEnvironmentalService";
+import {
+  BuildingData,
+  EnergyData,
+  WaterData,
+  CarbonData,
+  CertificationData,
+} from "@/models/environmental";
 
-const energyData = [
-  { month: "Jan", consumption: 420, target: 450, savings: 30 },
-  { month: "Feb", consumption: 430, target: 450, savings: 20 },
-  { month: "Mar", consumption: 448, target: 450, savings: 2 },
-  { month: "Apr", consumption: 415, target: 430, savings: 15 },
-  { month: "May", consumption: 405, target: 430, savings: 25 },
-  { month: "Jun", consumption: 390, target: 420, savings: 30 },
-  { month: "Jul", consumption: 410, target: 420, savings: 10 },
-];
-
-const waterData = [
-  { month: "Jan", consumption: 320, target: 350, savings: 30 },
-  { month: "Feb", consumption: 330, target: 350, savings: 20 },
-  { month: "Mar", consumption: 345, target: 350, savings: 5 },
-  { month: "Apr", consumption: 310, target: 330, savings: 20 },
-  { month: "May", consumption: 300, target: 330, savings: 30 },
-  { month: "Jun", consumption: 290, target: 320, savings: 30 },
-  { month: "Jul", consumption: 305, target: 320, savings: 15 },
-];
-
-const carbonData = [
-  { name: "Electricity", value: 45 },
-  { name: "Transportation", value: 25 },
-  { name: "Heating", value: 15 },
-  { name: "Water", value: 10 },
-  { name: "Waste", value: 5 },
-];
-
+// Default colors for charts
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
-const certificationData = [
-  {
-    name: "Greenship GBCI",
-    status: "In Progress",
-    progress: 68,
-    dueDate: "2024-12-15",
-    priority: "High",
-  },
-  {
-    name: "BGH Certification",
-    status: "In Progress",
-    progress: 42,
-    dueDate: "2025-03-10",
-    priority: "Medium",
-  },
-  {
-    name: "ISO 14001",
-    status: "Certified",
-    progress: 100,
-    dueDate: "2026-05-22",
-    priority: "Completed",
-  },
-  {
-    name: "ISO 50001",
-    status: "Planning",
-    progress: 15,
-    dueDate: "2025-08-30",
-    priority: "Low",
-  },
-];
-
-const buildingData = [
-  {
-    id: 1,
-    name: "Jakarta HQ",
-    location: "Jakarta",
-    energyScore: 85,
-    waterScore: 78,
-    carbonScore: 72,
-    alerts: 2,
-  },
-  {
-    id: 2,
-    name: "Surabaya Office",
-    location: "Surabaya",
-    energyScore: 76,
-    waterScore: 82,
-    carbonScore: 68,
-    alerts: 1,
-  },
-  {
-    id: 3,
-    name: "Bandung Campus",
-    location: "Bandung",
-    energyScore: 92,
-    waterScore: 88,
-    carbonScore: 90,
-    alerts: 0,
-  },
-  {
-    id: 4,
-    name: "Bali Resort",
-    location: "Denpasar",
-    energyScore: 65,
-    waterScore: 58,
-    carbonScore: 62,
-    alerts: 3,
-  },
-];
-
 const EnvironmentalEnergyManagement = () => {
-  const [selectedBuilding, setSelectedBuilding] = useState(buildingData[0]);
+  // State for data
+  const [energyData, setEnergyData] = useState<EnergyData[]>([]);
+  const [waterData, setWaterData] = useState<WaterData[]>([]);
+  const [carbonData, setCarbonData] = useState<CarbonData[]>([]);
+  const [certificationData, setCertificationData] = useState<
+    CertificationData[]
+  >([]);
+  const [buildingData, setBuildingData] = useState<BuildingData[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all data in parallel
+        const [
+          energyResult,
+          waterResult,
+          carbonResult,
+          certificationResult,
+          buildingResult,
+        ] = await Promise.all([
+          enhancedEnvironmentalService.getEnergyData(),
+          enhancedEnvironmentalService.getWaterData(),
+          enhancedEnvironmentalService.getCarbonData(),
+          enhancedEnvironmentalService.getCertificationData(),
+          enhancedEnvironmentalService.getBuildingData(),
+        ]);
+
+        // Check for errors
+        if (energyResult.error) throw new Error(energyResult.error);
+        if (waterResult.error) throw new Error(waterResult.error);
+        if (carbonResult.error) throw new Error(carbonResult.error);
+        if (certificationResult.error)
+          throw new Error(certificationResult.error);
+        if (buildingResult.error) throw new Error(buildingResult.error);
+
+        // Set data
+        setEnergyData(energyResult.data || []);
+        setWaterData(waterResult.data || []);
+        setCarbonData(carbonResult.data || []);
+        setCertificationData(certificationResult.data || []);
+        setBuildingData(buildingResult.data || []);
+
+        // Set selected building
+        if (buildingResult.data && buildingResult.data.length > 0) {
+          setSelectedBuilding(buildingResult.data[0]);
+        }
+      } catch (err) {
+        console.error("Error fetching environmental data:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load environmental data",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-slate-500">Memuat data lingkungan dan energi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <div className="text-center max-w-md p-6 bg-red-50 rounded-lg border border-red-100">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-red-800 mb-2">
+            Terjadi Kesalahan
+          </h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Coba Lagi
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no selected building, show message
+  if (!selectedBuilding) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-slate-500">Tidak ada gedung yang dipilih</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-white">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto p-8 bg-slate-50">
-          <div className="max-w-7xl mx-auto space-y-6">
+    <div className="flex h-screen w-full bg-white">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <main className="flex-1 overflow-auto p-8 bg-slate-50 w-full">
+          <div className="w-full space-y-6">
             <div>
               <h1 className="text-2xl font-bold mb-1 tracking-tight">
                 Environmental & Energy Management
@@ -240,6 +263,17 @@ const EnvironmentalEnergyManagement = () => {
                               {building.carbonScore}/100
                             </span>
                           </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-1">
+                              <Recycle className="h-4 w-4 text-purple-500" />
+                              <span>Waste</span>
+                            </div>
+                            <span
+                              className={`font-medium ${building.wasteScore >= 80 ? "text-green-600" : building.wasteScore >= 70 ? "text-amber-600" : "text-red-600"}`}
+                            >
+                              {building.wasteScore}/100
+                            </span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -250,17 +284,18 @@ const EnvironmentalEnergyManagement = () => {
 
             {/* Dashboard Tabs */}
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="energy">Energy</TabsTrigger>
                 <TabsTrigger value="water">Water</TabsTrigger>
                 <TabsTrigger value="carbon">Carbon</TabsTrigger>
+                <TabsTrigger value="waste">Waste</TabsTrigger>
                 <TabsTrigger value="compliance">Compliance</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium">
@@ -353,6 +388,38 @@ const EnvironmentalEnergyManagement = () => {
                       <div className="flex justify-between mt-1 text-xs text-slate-500">
                         <span>Target: 32 tCO₂e</span>
                         <span>88% of target</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Waste Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-purple-100 rounded-full">
+                            <Recycle className="h-5 w-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold">1,250 kg</div>
+                            <div className="text-xs text-slate-500">
+                              Last 30 days
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                          <ArrowUpRight className="h-4 w-4" />
+                          <span>-5.2%</span>
+                        </div>
+                      </div>
+                      <Progress value={75} className="h-2 mt-4" />
+                      <div className="flex justify-between mt-1 text-xs text-slate-500">
+                        <span>Target: 1,500 kg</span>
+                        <span>75% of target</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -1417,6 +1484,471 @@ const EnvironmentalEnergyManagement = () => {
                             </div>
                             <Progress value={68} className="h-2" />
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Waste Management Tab */}
+              <TabsContent value="waste" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Total Waste Generated
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-3xl font-bold">1,250 kg</div>
+                          <div className="text-sm text-slate-500">
+                            Last 30 days
+                          </div>
+                        </div>
+                        <div className="p-3 bg-slate-100 rounded-full">
+                          <Trash2 className="h-6 w-6 text-slate-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Recycling Rate
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-3xl font-bold">68%</div>
+                          <div className="text-sm text-slate-500">
+                            Monthly average
+                          </div>
+                        </div>
+                        <div className="p-3 bg-green-100 rounded-full">
+                          <Recycle className="h-6 w-6 text-green-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Waste Reduction
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-3xl font-bold">5.2%</div>
+                          <div className="text-sm text-slate-500">
+                            vs. previous month
+                          </div>
+                        </div>
+                        <div className="p-3 bg-green-100 rounded-full">
+                          <ArrowUpRight className="h-6 w-6 text-green-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Waste Composition</CardTitle>
+                    <CardDescription>
+                      Breakdown by waste type and category
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="font-medium mb-4">By Category</h3>
+                        <div className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: "Organik", value: 45 },
+                                  { name: "Anorganik", value: 35 },
+                                  { name: "B3 (Berbahaya)", value: 20 },
+                                ]}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={({ name, percent }) =>
+                                  `${name} ${(percent * 100).toFixed(0)}%`
+                                }
+                              >
+                                {[
+                                  { name: "Organik", value: 45 },
+                                  { name: "Anorganik", value: 35 },
+                                  { name: "B3 (Berbahaya)", value: 20 },
+                                ].map((entry, index) => (
+                                  <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-medium mb-4">Monthly Trend</h3>
+                        <div className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                              data={[
+                                {
+                                  month: "Jan",
+                                  organik: 520,
+                                  anorganik: 380,
+                                  berbahaya: 210,
+                                },
+                                {
+                                  month: "Feb",
+                                  organik: 510,
+                                  anorganik: 390,
+                                  berbahaya: 200,
+                                },
+                                {
+                                  month: "Mar",
+                                  organik: 530,
+                                  anorganik: 400,
+                                  berbahaya: 220,
+                                },
+                                {
+                                  month: "Apr",
+                                  organik: 490,
+                                  anorganik: 370,
+                                  berbahaya: 190,
+                                },
+                                {
+                                  month: "May",
+                                  organik: 480,
+                                  anorganik: 360,
+                                  berbahaya: 180,
+                                },
+                                {
+                                  month: "Jun",
+                                  organik: 460,
+                                  anorganik: 350,
+                                  berbahaya: 170,
+                                },
+                                {
+                                  month: "Jul",
+                                  organik: 450,
+                                  anorganik: 340,
+                                  berbahaya: 160,
+                                },
+                              ]}
+                            >
+                              <CartesianGrid
+                                strokeDasharray="3 3"
+                                vertical={false}
+                              />
+                              <XAxis dataKey="month" />
+                              <YAxis />
+                              <Tooltip />
+                              <Legend />
+                              <Bar
+                                dataKey="organik"
+                                name="Organik (kg)"
+                                fill="#10b981"
+                              />
+                              <Bar
+                                dataKey="anorganik"
+                                name="Anorganik (kg)"
+                                fill="#3b82f6"
+                              />
+                              <Bar
+                                dataKey="berbahaya"
+                                name="B3 (Berbahaya) (kg)"
+                                fill="#f59e0b"
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Organic Waste Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sampah Organik</CardTitle>
+                      <CardDescription>
+                        Sampah makanan, sampah kebun, dan bahan biodegradable
+                        lainnya
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Total Bulanan</span>
+                            <span className="font-medium">450 kg</span>
+                          </div>
+                          <Progress value={75} className="h-2" />
+                          <div className="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>Target: 600 kg</span>
+                            <span>75% dari target</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Komposisi</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Sampah Makanan</span>
+                              <span className="font-medium">65%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Sampah Kebun</span>
+                              <span className="font-medium">25%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Kertas</span>
+                              <span className="font-medium">8%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Lainnya</span>
+                              <span className="font-medium">2%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <h4 className="text-sm font-medium mb-2">
+                            Metode Pengelolaan
+                          </h4>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="outline" className="bg-green-50">
+                              Komposting (70%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-blue-50">
+                              Biogas (20%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-slate-50">
+                              TPA (10%)
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Inorganic Waste Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Sampah Anorganik</CardTitle>
+                      <CardDescription>
+                        Plastik, kaca, logam, dan bahan non-biodegradable
+                        lainnya
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Total Bulanan</span>
+                            <span className="font-medium">340 kg</span>
+                          </div>
+                          <Progress value={85} className="h-2" />
+                          <div className="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>Target: 400 kg</span>
+                            <span>85% dari target</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Komposisi</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Plastik</span>
+                              <span className="font-medium">45%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Kaca</span>
+                              <span className="font-medium">20%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Logam</span>
+                              <span className="font-medium">15%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Lainnya</span>
+                              <span className="font-medium">20%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <h4 className="text-sm font-medium mb-2">
+                            Metode Pengelolaan
+                          </h4>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="outline" className="bg-green-50">
+                              Daur Ulang (65%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-amber-50">
+                              Penggunaan Ulang (15%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-slate-50">
+                              TPA (20%)
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* B3 (Hazardous) Waste Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        Limbah B3 (Bahan Berbahaya dan Beracun)
+                      </CardTitle>
+                      <CardDescription>
+                        Bahan beracun, korosif, mudah terbakar, dan bahan
+                        berbahaya lainnya
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>Total Bulanan</span>
+                            <span className="font-medium">160 kg</span>
+                          </div>
+                          <Progress value={80} className="h-2" />
+                          <div className="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>Target: 200 kg</span>
+                            <span>80% dari target</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Komposisi</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Kimia</span>
+                              <span className="font-medium">40%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Elektronik</span>
+                              <span className="font-medium">30%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Medis</span>
+                              <span className="font-medium">20%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Lainnya</span>
+                              <span className="font-medium">10%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <h4 className="text-sm font-medium mb-2">
+                            Metode Pengelolaan
+                          </h4>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="outline" className="bg-red-50">
+                              Pengolahan Khusus (75%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-amber-50">
+                              Insinerasi (20%)
+                            </Badge>
+                            <Badge variant="outline" className="bg-slate-50">
+                              TPA Khusus B3 (5%)
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Rekomendasi Pengelolaan Sampah</CardTitle>
+                    <CardDescription>
+                      Wawasan yang dapat ditindaklanjuti untuk meningkatkan
+                      pengelolaan sampah dan mengurangi dampak lingkungan
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4 p-4 border rounded-lg">
+                        <div className="p-2 bg-green-100 rounded-full">
+                          <Leaf className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">
+                            Program Komposting Sampah Organik
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Implementasikan komposting di lokasi untuk sampah
+                            makanan dan kebun. Potensi pengurangan: 30% sampah
+                            organik yang dikirim ke TPA.
+                          </p>
+                          <Button size="sm" className="mt-2">
+                            Implementasi
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4 p-4 border rounded-lg">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <Recycle className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">
+                            Inisiatif Pengurangan Plastik
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Ganti plastik sekali pakai dengan alternatif yang
+                            dapat digunakan kembali atau biodegradable. Estimasi
+                            pengurangan: 25% sampah plastik.
+                          </p>
+                          <Button size="sm" className="mt-2">
+                            Implementasi
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4 p-4 border rounded-lg">
+                        <div className="p-2 bg-amber-100 rounded-full">
+                          <AlertCircle className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">
+                            Pelatihan Pengelolaan Limbah B3
+                          </h3>
+                          <p className="text-sm text-slate-500 mt-1">
+                            Lakukan sesi pelatihan tentang penanganan dan
+                            pembuangan bahan berbahaya yang tepat. Peningkatan
+                            kepatuhan: 15-20%.
+                          </p>
+                          <Button size="sm" className="mt-2">
+                            Implementasi
+                          </Button>
                         </div>
                       </div>
                     </div>

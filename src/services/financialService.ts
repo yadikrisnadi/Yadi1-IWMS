@@ -7,6 +7,7 @@ import {
   TaxCompliance,
   FinancialMetrics,
 } from "../models/financial";
+import { withErrorHandling } from "../components/common/ApiErrorHandler";
 
 // Mock data for development - would be replaced with actual API calls
 const mockTransactions: FinancialTransaction[] = [
@@ -119,8 +120,8 @@ const mockTransactions: FinancialTransaction[] = [
   },
 ];
 
-// Service functions
-export const financialService = {
+// Base service functions
+const baseFinancialService = {
   // Get all transactions
   getTransactions: async (): Promise<FinancialTransaction[]> => {
     // In a real implementation, this would be an API call
@@ -184,7 +185,7 @@ export const financialService = {
 
   // Get financial dashboard data
   getFinancialDashboard: async (): Promise<FinancialDashboard> => {
-    const transactions = await financialService.getTransactions();
+    const transactions = await baseFinancialService.getTransactions();
 
     const incomeTransactions = transactions.filter(
       (t) => t.category?.type === "income",
@@ -286,4 +287,25 @@ export const financialService = {
     // Mock implementation
     return Promise.resolve([]);
   },
+};
+
+// Enhanced service with error handling
+export const financialService = {
+  getTransactions: withErrorHandling(baseFinancialService.getTransactions),
+  getTransactionsByPropertyId: withErrorHandling(
+    baseFinancialService.getTransactionsByPropertyId,
+  ),
+  getTransactionsByLeaseId: withErrorHandling(
+    baseFinancialService.getTransactionsByLeaseId,
+  ),
+  createTransaction: withErrorHandling(baseFinancialService.createTransaction),
+  updateTransaction: withErrorHandling(baseFinancialService.updateTransaction),
+  deleteTransaction: withErrorHandling(baseFinancialService.deleteTransaction),
+  getFinancialDashboard: withErrorHandling(
+    baseFinancialService.getFinancialDashboard,
+  ),
+  getTaxCompliance: withErrorHandling(baseFinancialService.getTaxCompliance),
+  getFinancialMetrics: withErrorHandling(
+    baseFinancialService.getFinancialMetrics,
+  ),
 };

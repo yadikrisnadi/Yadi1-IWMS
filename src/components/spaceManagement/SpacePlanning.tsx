@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,20 +29,26 @@ import {
   Grid,
   ClipboardList,
 } from "lucide-react";
-import { spaceManagementService } from "@/services/spaceManagementService";
+import { spaceManagementService } from "./enhancedSpaceManagementService";
 import { Floor, Space, SpaceType } from "@/models/spaceManagement";
-import WorkplaceLayout from "./WorkplaceLayout";
-import SpaceUtilizationTracking from "./SpaceUtilizationTracking";
-import FacilitiesOptimization from "./FacilitiesOptimization";
-import SpaceInventory from "./SpaceInventory";
-import SpacePlanningAllocation from "./SpacePlanningAllocation";
-import MoveManagement from "./MoveManagement";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
+import LoadingFallback from "@/components/common/LoadingFallback";
+
+// Lazy load components
+const WorkplaceLayout = lazy(() => import("./WorkplaceLayout"));
+const SpaceUtilizationTracking = lazy(
+  () => import("./SpaceUtilizationTracking"),
+);
+const FacilitiesOptimization = lazy(() => import("./FacilitiesOptimization"));
+const SpaceInventory = lazy(() => import("./SpaceInventory"));
+const SpacePlanningAllocation = lazy(() => import("./SpacePlanningAllocation"));
+const MoveManagement = lazy(() => import("./MoveManagement"));
 
 interface SpacePlanningProps {
   title?: string;
 }
 
-const SpacePlanning = ({
+const SpacePlanningContent = ({
   title = "Space Planning & Management",
 }: SpacePlanningProps) => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -78,6 +84,7 @@ const SpacePlanning = ({
           setSpaces(spacesData);
         }
       } catch (error) {
+        // Error handling is now managed by the enhanced service
         console.error("Error fetching space management data:", error);
       } finally {
         setLoading(false);
@@ -108,7 +115,7 @@ const SpacePlanning = ({
   };
 
   return (
-    <div className="w-full h-full bg-white shadow-sm rounded-lg border">
+    <div className="w-full h-full bg-white shadow-sm rounded-lg border overflow-auto">
       <div className="p-4 pb-2 border-b">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium flex items-center gap-2">
@@ -341,28 +348,96 @@ const SpacePlanning = ({
             </div>
           </TabsContent>
 
-          <TabsContent value="inventory">
-            <SpaceInventory />
+          <TabsContent value="inventory" className="pt-4">
+            <ErrorBoundary moduleName="Space Inventory">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat inventaris ruang..." />
+                }
+              >
+                <SpaceInventory />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="planning">
-            <SpacePlanningAllocation />
+          <TabsContent value="planning" className="pt-4">
+            <ErrorBoundary moduleName="Space Planning Allocation">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat alokasi perencanaan ruang..." />
+                }
+              >
+                <SpacePlanningAllocation />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="utilization">
-            <SpaceUtilizationTracking />
+          <TabsContent value="utilization" className="pt-4">
+            <ErrorBoundary moduleName="Space Utilization Tracking">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat pelacakan penggunaan ruang..." />
+                }
+              >
+                <SpaceUtilizationTracking
+                  floors={floors}
+                  spaces={spaces}
+                  spaceTypes={spaceTypes}
+                  selectedFloor={selectedFloor}
+                  onFloorChange={handleFloorChange}
+                  loading={loading}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="optimization">
-            <FacilitiesOptimization />
+          <TabsContent value="optimization" className="pt-4">
+            <ErrorBoundary moduleName="Facilities Optimization">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat optimasi fasilitas..." />
+                }
+              >
+                <FacilitiesOptimization
+                  floors={floors}
+                  spaces={spaces}
+                  spaceTypes={spaceTypes}
+                  selectedFloor={selectedFloor}
+                  onFloorChange={handleFloorChange}
+                  loading={loading}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="moves">
-            <MoveManagement />
+          <TabsContent value="moves" className="pt-4">
+            <ErrorBoundary moduleName="Move Management">
+              <Suspense
+                fallback={
+                  <LoadingFallback message="Memuat manajemen perpindahan..." />
+                }
+              >
+                <MoveManagement />
+              </Suspense>
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </div>
     </div>
+  );
+};
+
+const SpacePlanning = (props: SpacePlanningProps) => {
+  return (
+    <ErrorBoundary moduleName="Space Planning & Management">
+      <Suspense
+        fallback={
+          <LoadingFallback message="Memuat modul perencanaan ruang..." />
+        }
+      >
+        <SpacePlanningContent {...props} />
+      </Suspense>
+    </ErrorBoundary>
   );
 };
 

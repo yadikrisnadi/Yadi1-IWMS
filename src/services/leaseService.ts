@@ -5,6 +5,7 @@ import {
   LeaseDocument,
   LeasePortfolio,
 } from "../models/lease";
+import { withErrorHandling } from "../components/common/ApiErrorHandler";
 
 // Mock data for development - would be replaced with actual API calls
 const mockLeases: Lease[] = [
@@ -108,8 +109,8 @@ const mockLeases: Lease[] = [
   },
 ];
 
-// Service functions
-export const leaseService = {
+// Base service functions
+const baseLeaseService = {
   // Get all leases
   getLeases: async (): Promise<Lease[]> => {
     // In a real implementation, this would be an API call
@@ -179,7 +180,7 @@ export const leaseService = {
 
   // Get lease portfolio summary
   getLeasePortfolio: async (): Promise<LeasePortfolio> => {
-    const leases = await leaseService.getLeases();
+    const leases = await baseLeaseService.getLeases();
     const now = new Date();
     const ninetyDaysFromNow = new Date(
       now.getTime() + 90 * 24 * 60 * 60 * 1000,
@@ -208,4 +209,19 @@ export const leaseService = {
       leases,
     };
   },
+};
+
+// Enhanced service with error handling
+export const leaseService = {
+  getLeases: withErrorHandling(baseLeaseService.getLeases),
+  getLeaseById: withErrorHandling(baseLeaseService.getLeaseById),
+  getLeasesByPropertyId: withErrorHandling(
+    baseLeaseService.getLeasesByPropertyId,
+  ),
+  createLease: withErrorHandling(baseLeaseService.createLease),
+  updateLease: withErrorHandling(baseLeaseService.updateLease),
+  deleteLease: withErrorHandling(baseLeaseService.deleteLease),
+  getLeasePayments: withErrorHandling(baseLeaseService.getLeasePayments),
+  getLeaseDocuments: withErrorHandling(baseLeaseService.getLeaseDocuments),
+  getLeasePortfolio: withErrorHandling(baseLeaseService.getLeasePortfolio),
 };

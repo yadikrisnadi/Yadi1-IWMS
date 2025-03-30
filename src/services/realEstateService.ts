@@ -5,6 +5,7 @@ import {
   PropertyContact,
   PropertyPortfolio,
 } from "../models/realEstate";
+import { withErrorHandling } from "../components/common/ApiErrorHandler";
 
 // Mock data for development - would be replaced with actual API calls
 const mockProperties: Property[] = [
@@ -98,8 +99,8 @@ const mockProperties: Property[] = [
   },
 ];
 
-// Service functions
-export const realEstateService = {
+// Base service functions
+const baseRealEstateService = {
   // Get all properties
   getProperties: async (): Promise<Property[]> => {
     // In a real implementation, this would be an API call
@@ -167,7 +168,7 @@ export const realEstateService = {
 
   // Get property portfolio summary
   getPropertyPortfolio: async (): Promise<PropertyPortfolio> => {
-    const properties = await realEstateService.getProperties();
+    const properties = await baseRealEstateService.getProperties();
     const totalValue = properties.reduce(
       (sum, property) => sum + (property.currentMarketValue || 0),
       0,
@@ -184,4 +185,22 @@ export const realEstateService = {
       properties,
     };
   },
+};
+
+// Enhanced service with error handling
+export const realEstateService = {
+  getProperties: withErrorHandling(baseRealEstateService.getProperties),
+  getPropertyById: withErrorHandling(baseRealEstateService.getPropertyById),
+  createProperty: withErrorHandling(baseRealEstateService.createProperty),
+  updateProperty: withErrorHandling(baseRealEstateService.updateProperty),
+  deleteProperty: withErrorHandling(baseRealEstateService.deleteProperty),
+  getPropertyDocuments: withErrorHandling(
+    baseRealEstateService.getPropertyDocuments,
+  ),
+  getPropertyContacts: withErrorHandling(
+    baseRealEstateService.getPropertyContacts,
+  ),
+  getPropertyPortfolio: withErrorHandling(
+    baseRealEstateService.getPropertyPortfolio,
+  ),
 };

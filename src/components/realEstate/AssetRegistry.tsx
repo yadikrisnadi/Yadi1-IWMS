@@ -1,9 +1,43 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building, Building2, FileText, Tag } from "lucide-react";
+import { realEstateService } from "@/services/realEstateService";
+import LoadingFallback from "@/components/common/LoadingFallback";
 
 const AssetRegistry = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAssetData = async () => {
+      try {
+        const { data, error } = await realEstateService.getProperties();
+        if (error) {
+          setError(error);
+        }
+        // Data would be used to populate the component
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetData();
+  }, []);
+
+  if (loading) {
+    return <LoadingFallback message="Memuat data aset..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+        <h3 className="font-medium">Error</h3>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full space-y-4">
       <Card>
